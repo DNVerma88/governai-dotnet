@@ -5,12 +5,21 @@ name: Release to NuGet
 # The release tag MUST follow semver format: v<major>.<minor>.<patch>[-suffix]
 # e.g.  v0.1.0-alpha   v1.0.0   v1.2.3-beta.1
 #
+# Can also be triggered manually from the Actions tab (workflow_dispatch),
+# supplying a version string directly.
+#
 # Required repository secret:
 #   NUGET_API_KEY — API key from https://www.nuget.org (account: deepn87)
 #                   Scope: Push new packages and package versions
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version to publish (e.g. 0.1.0-alpha)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -38,13 +47,19 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # ── Extract version from release tag ────────────────────────────────────
-      # Strips the leading 'v' so  v0.1.0-alpha  → 0.1.0-alpha
+      # ── Extract version ──────────────────────────────────────────────────────
+      # For workflow_dispatch: use the manually supplied version input.
+      # For release events:    strip the leading 'v' from the tag name.
+      #   v0.1.0-alpha  →  0.1.0-alpha
       - name: Extract package version
         id: version
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          VERSION="${TAG#v}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+          fi
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Packaging version: $VERSION"
 
