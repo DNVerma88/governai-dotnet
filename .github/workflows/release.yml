@@ -1,0 +1,120 @@
+name: Release to NuGet
+
+# Triggered when a GitHub Release is published (i.e. when you click
+# "Publish release" on the GitHub UI or via the API).
+# The release tag MUST follow semver format: v<major>.<minor>.<patch>[-suffix]
+# e.g.  v0.1.0-alpha   v1.0.0   v1.2.3-beta.1
+#
+# Required repository secret:
+#   NUGET_API_KEY — API key from https://www.nuget.org (account: deepn87)
+#                   Scope: Push new packages and package versions
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to NuGet.org
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history required for deterministic builds
+
+      # ── .NET SDKs ────────────────────────────────────────────────────────────
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # ── Extract version from release tag ────────────────────────────────────
+      # Strips the leading 'v' so  v0.1.0-alpha  → 0.1.0-alpha
+      - name: Extract package version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Packaging version: $VERSION"
+
+      # ── Build & Test ─────────────────────────────────────────────────────────
+      - name: Restore dependencies
+        run: dotnet restore GovernAI.slnx
+
+      - name: Build (Release)
+        run: dotnet build GovernAI.slnx --configuration Release --no-restore
+        env:
+          CI: true   # enables ContinuousIntegrationBuild in Directory.Build.props
+
+      - name: Test (net8.0)
+        run: dotnet test GovernAI.slnx --configuration Release --no-build --framework net8.0
+
+      - name: Test (net10.0)
+        run: dotnet test GovernAI.slnx --configuration Release --no-build --framework net10.0
+
+      # ── Pack ─────────────────────────────────────────────────────────────────
+      # Passing /p:Version overrides the version in Directory.Build.props so
+      # every package in this release has the same version as the git tag.
+      - name: Pack GovernAI.Abstractions
+        run: >
+          dotnet pack src/GovernAI.Abstractions/GovernAI.Abstractions.csproj
+          --configuration Release --no-build --output ./nupkgs
+          /p:Version=${{ steps.version.outputs.VERSION }}
+
+      - name: Pack GovernAI.Core
+        run: >
+          dotnet pack src/GovernAI.Core/GovernAI.Core.csproj
+          --configuration Release --no-build --output ./nupkgs
+          /p:Version=${{ steps.version.outputs.VERSION }}
+
+      - name: Pack GovernAI.Security
+        run: >
+          dotnet pack src/GovernAI.Security/GovernAI.Security.csproj
+          --configuration Release --no-build --output ./nupkgs
+          /p:Version=${{ steps.version.outputs.VERSION }}
+
+      - name: Pack GovernAI.AspNetCore
+        run: >
+          dotnet pack src/GovernAI.AspNetCore/GovernAI.AspNetCore.csproj
+          --configuration Release --no-build --output ./nupkgs
+          /p:Version=${{ steps.version.outputs.VERSION }}
+
+      # ── Publish ──────────────────────────────────────────────────────────────
+      - name: Push packages to NuGet.org
+        run: >
+          dotnet nuget push "./nupkgs/*.nupkg"
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+
+      # Symbol packages (.snupkg) are pushed separately so a failure here
+      # does not block the main package push.
+      - name: Push symbol packages to NuGet.org
+        run: |
+          if ls ./nupkgs/*.snupkg 1>/dev/null 2>&1; then
+            dotnet nuget push "./nupkgs/*.snupkg" \
+              --api-key ${{ secrets.NUGET_API_KEY }} \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          else
+            echo "No .snupkg files found — skipping symbol push."
+          fi
+
+      # ── Upload as artifact (for audit trail) ────────────────────────────────
+      - name: Upload packages artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-${{ steps.version.outputs.VERSION }}
+          path: ./nupkgs/
+          retention-days: 90

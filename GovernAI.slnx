@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GovernAI.Abstractions/GovernAI.Abstractions.csproj" />
+    <Project Path="src/GovernAI.AspNetCore/GovernAI.AspNetCore.csproj" />
+    <Project Path="src/GovernAI.Core/GovernAI.Core.csproj" />
+    <Project Path="src/GovernAI.Security/GovernAI.Security.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GovernAI.Abstractions.Tests/GovernAI.Abstractions.Tests.csproj" />
+    <Project Path="tests/GovernAI.AspNetCore.Tests/GovernAI.AspNetCore.Tests.csproj" />
+    <Project Path="tests/GovernAI.Core.Tests/GovernAI.Core.Tests.csproj" />
+    <Project Path="tests/GovernAI.Security.Tests/GovernAI.Security.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/MinimalApi.Basic/MinimalApi.Basic.csproj" />
+    <Project Path="samples/MinimalApi.MultiTenant/MinimalApi.MultiTenant.csproj" />
+    <Project Path="samples/MinimalApi.PolicyDemo/MinimalApi.PolicyDemo.csproj" />
+  </Folder>
+</Solution>

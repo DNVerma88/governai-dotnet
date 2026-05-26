@@ -1,0 +1,31 @@
+<Project>
+
+  <!--
+    Import the root Directory.Build.props so test projects inherit all common settings
+    (ImplicitUsings, Nullable, TreatWarningsAsErrors, LangVersion, etc.).
+    MSBuild stops at the first Directory.Build.props it finds, so we must explicitly
+    import the root one from here.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    Override root settings that are not appropriate for test projects.
+    Test projects do not ship as NuGet packages and do not require AOT/trimming compatibility.
+  -->
+  <PropertyGroup>
+    <IsAotCompatible>false</IsAotCompatible>
+    <IsTrimmable>false</IsTrimmable>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!--
+      Suppress MSB3492 errors from Microsoft.CodeCoverage.targets.
+      That target tries to read/compare a msCoverageSourceRootsMapping file left
+      behind by a previous test run and fails with MSB3492 when the file is locked.
+      Disabling code coverage during plain dotnet build is safe; coverage still
+      works when explicitly invoked via dotnet test with the collect flag.
+    -->
+    <DisableCodeCoverage>true</DisableCodeCoverage>
+  </PropertyGroup>
+
+</Project>

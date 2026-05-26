@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>GovernAI .NET SDK — Security features including PII redaction, prompt injection detection, risk scoring, and local policy decisions.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GovernAI.Abstractions\GovernAI.Abstractions.csproj" />
+    <ProjectReference Include="..\GovernAI.Core\GovernAI.Core.csproj" />
+  </ItemGroup>
+
+</Project>

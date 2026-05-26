@@ -1,0 +1,37 @@
+# Root
+*.user
+.vs/
+.vscode/
+
+# Build outputs
+bin/
+obj/
+out/
+artifacts/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+nuget.config
+
+# Test results
+TestResults/
+coverage/
+*.coveragexml
+*.trx
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Rider
+.idea/
+
+# Temp
+_temp/

@@ -1,0 +1,94 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore GovernAI.slnx
+
+      - name: Build (Release)
+        run: dotnet build GovernAI.slnx --configuration Release --no-restore
+
+      - name: Test (net8.0)
+        run: dotnet test GovernAI.slnx --configuration Release --no-build --framework net8.0 --logger "trx;LogFileName=test-results-net8.trx" --results-directory ./test-results
+
+      - name: Test (net10.0)
+        run: dotnet test GovernAI.slnx --configuration Release --no-build --framework net10.0 --logger "trx;LogFileName=test-results-net10.trx" --results-directory ./test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: ./test-results/*.trx
+          retention-days: 30
+
+  pack:
+    name: Pack NuGet packages
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore GovernAI.slnx
+
+      - name: Build (Release)
+        run: dotnet build GovernAI.slnx --configuration Release --no-restore
+
+      - name: Pack GovernAI.Abstractions
+        run: dotnet pack src/GovernAI.Abstractions/GovernAI.Abstractions.csproj --configuration Release --no-build --output ./nupkgs
+
+      - name: Pack GovernAI.Core
+        run: dotnet pack src/GovernAI.Core/GovernAI.Core.csproj --configuration Release --no-build --output ./nupkgs
+
+      - name: Pack GovernAI.Security
+        run: dotnet pack src/GovernAI.Security/GovernAI.Security.csproj --configuration Release --no-build --output ./nupkgs
+
+      - name: Pack GovernAI.AspNetCore
+        run: dotnet pack src/GovernAI.AspNetCore/GovernAI.AspNetCore.csproj --configuration Release --no-build --output ./nupkgs
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./nupkgs/*.nupkg
+          retention-days: 90
