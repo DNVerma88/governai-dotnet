@@ -13,7 +13,7 @@ Thank you for your interest in contributing to GovernAI!
 5. Run `dotnet test` to run all tests
 
 ```bash
-git clone https://github.com/your-org/governai-dotnet
+git clone https://github.com/DNVerma88/governai-dotnet
 cd governai-dotnet
 dotnet restore
 dotnet build
