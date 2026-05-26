@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Package version to publish (e.g. 0.1.0-alpha)'
+        description: 'Package version to publish — with or without leading v (e.g. 0.1.0-alpha or v0.1.0-alpha)'
         required: true
         type: string
 
@@ -48,17 +48,22 @@ jobs:
           dotnet-version: '10.0.x'
 
       # ── Extract version ──────────────────────────────────────────────────────
-      # For workflow_dispatch: use the manually supplied version input.
-      # For release events:    strip the leading 'v' from the tag name.
-      #   v0.1.0-alpha  →  0.1.0-alpha
+      # Accepts both 'v0.1.0-alpha' and '0.1.0-alpha' in either trigger path.
+      # The leading 'v' is always stripped before passing to dotnet pack because
+      # NuGet rejects version strings that start with 'v'.
       - name: Extract package version
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ inputs.version }}"
           else
-            TAG="${GITHUB_REF_NAME}"
-            VERSION="${TAG#v}"
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+          # Normalize: strip leading 'v' (e.g. v0.1.0-alpha → 0.1.0-alpha)
+          VERSION="${VERSION#v}"
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: could not determine package version." >&2
+            exit 1
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Packaging version: $VERSION"
